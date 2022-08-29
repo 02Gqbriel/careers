@@ -1,1 +1,8 @@
 @tailwind utilities;
+
+@layer utilities {
+	html {
+		font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+		@apply antialiased prose-sm font-medium p-2 min-h-screen flex;
+	}
+}

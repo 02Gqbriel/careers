@@ -5,9 +5,10 @@ module.exports = {
 	content: ['./src/**/*.{html,js,svelte,ts}'],
 	theme: {
 		fontFamily: {
-			sans: ['Poppins', ...defaultTheme.fontFamily.sans]
+			sans: ['Poppins', ...defaultTheme.fontFamily.sans],
+			mono: ["Ubuntu Mono", ...defaultTheme.fontFamily.mono]
 		},
 		extend: {}
 	},
-	plugins: [require('@tailwindcss/typography')]
+	plugins: [require('@tailwindcss/typography'), require('@tailwindcss/forms')]
 };

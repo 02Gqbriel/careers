@@ -17,7 +17,7 @@ model Company {
   url String?
   contact_person Person[]
   status Status @default(WRITING)
-  last_change DateTime @default(now())
+  last_change Int
   rating Int
   notes String
 }
@@ -35,4 +35,10 @@ enum Status {
   REJECTED
   INVITED
   OFFER
+}
+
+model User {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  username String @unique
+  passwordHash String
 }

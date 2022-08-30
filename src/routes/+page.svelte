@@ -1,13 +1,15 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { Status, type Company } from '@prisma/client';
+	import type { Company } from '@prisma/client';
 	import throttle from '@jcoreio/async-throttle';
+	import { dev } from '$app/environment';
 
 	import '$lib/base.css';
 	import '$lib/variants.css';
 	import '$lib/utilities.css';
 	import '$lib/components.css';
 	import { onMount } from 'svelte';
+	import { compare } from 'bcryptjs';
 
 	export let data: PageData;
 	let load = false;
@@ -24,28 +26,42 @@
 		notes: ''
 	};
 
-	let username = '',
-		password = '';
-
 	let arr = [null, null, null, null, null];
 	let times = [
 		...data.companies.map((v) => calcTime(v.last_change)),
 		calcTime(new_company.last_change)
 	];
 
-	onMount(() => {
+	let password = null;
+
+	onMount(async () => {
 		load = true;
+
+		if (!dev) {
+			password = prompt('Please enter Password!');
+
+			if (password == null) {
+				alert('Not valid Password');
+				window.location.reload();
+				return;
+			}
+
+			if (!(await compare(password, await (await fetch('/login')).text()))) {
+				alert('Not valid Password');
+				window.location.reload();
+				return;
+			}
+		}
 	});
 
-	$: console.log(data.companies),
-		throttle(async () => {
-			if (load) {
-				await fetch('/api', {
-					method: 'PUT',
-					body: JSON.stringify(data.companies)
-				});
-			}
-		}, 6000)();
+	$: throttle(async () => {
+		if (load) {
+			await fetch('/api', {
+				method: 'PUT',
+				body: JSON.stringify(data.companies)
+			});
+		}
+	}, 6000)();
 
 	$: new_company = { ...new_company, last_change: Date.now() };
 
@@ -92,6 +108,33 @@
 			data.companies = await res.json();
 		}
 	}
+
+	function color(company) {
+		let color = 'gray';
+
+		switch (company) {
+			case 'ANSWERED':
+				color = 'blue';
+				break;
+			case 'REJECTED':
+				color = 'red';
+				break;
+			case 'WRITING':
+				color = 'gray';
+				break;
+			case 'APPLIED':
+				color = 'purple';
+				break;
+			case 'OFFER':
+				color = 'green';
+				break;
+			case 'INVITED':
+				color = 'yellow';
+				break;
+		}
+
+		return `bg-${color}-200 text-${color}-600 border-${color}-400 border-2`;
+	}
 </script>
 
 <header>
@@ -115,13 +158,13 @@
 		<tbody>
 			{#each data.companies as company, i}
 				<tr>
-					<td class="p-1">
+					<td class="p-0.5">
 						<input bind:value={company.name} type="text" placeholder="enter..." />
 					</td>
-					<td class="p-1">
+					<td class="p-0.5">
 						<input bind:value={company.notes} type="text" placeholder="enter..." />
 					</td>
-					<td class="p-1">
+					<td class="p-0.5">
 						<input
 							bind:value={company.mail}
 							type="email"
@@ -130,10 +173,10 @@
 							placeholder="enter..."
 						/>
 					</td>
-					<td class="p-1">
+					<td class="p-0.5">
 						<input bind:value={company.url} type="text" placeholder="enter..." />
 					</td>
-					<td class="p-1 ">
+					<td class="p-0.5 ">
 						<span class="flex justify-around">
 							{#each arr as s, index}
 								{#if index + 1 <= company.rating}
@@ -174,17 +217,22 @@
 							{/each}
 						</span>
 					</td>
-					<td class="p-1">
-						<select name="statusSelect" id="statusSelect" bind:value={company.status}>
-							<option value={Status.ANSWERED}> answered</option>
-							<option value={Status.APPLIED}> applied</option>
-							<option value={Status.INVITED}> invited</option>
-							<option value={Status.OFFER}> offer</option>
-							<option value={Status.REJECTED}> refected</option>
-							<option value={Status.WRITING}> writing</option>
+					<td class="p-0.5">
+						<select
+							class={color(company.status)}
+							name="statusSelect"
+							id="statusSelect"
+							bind:value={company.status}
+						>
+							<option value={'ANSWERED'}> answered</option>
+							<option value={'APPLIED'}> applied</option>
+							<option value={'INVITED'}> invited</option>
+							<option value={'OFFER'}> offer</option>
+							<option value={'REJECTED'}> rejected</option>
+							<option value={'WRITING'}> writing</option>
 						</select>
 					</td>
-					<td class="p-1">
+					<td class="p-0.5">
 						<span class="ml-1 text-base font-mono">
 							{times[i]}
 						</span>
@@ -194,13 +242,13 @@
 			{/each}
 
 			<tr class="relative lg:table-row hidden">
-				<td class="p-1">
+				<td class="p-0.5">
 					<input bind:value={new_company.name} type="text" placeholder="enter..." />
 				</td>
-				<td class="p-1">
+				<td class="p-0.5">
 					<input bind:value={new_company.notes} type="text" placeholder="enter..." />
 				</td>
-				<td class="p-1">
+				<td class="p-0.5">
 					<input
 						bind:value={new_company.mail}
 						type="email"
@@ -209,10 +257,10 @@
 						placeholder="enter..."
 					/>
 				</td>
-				<td class="p-1">
+				<td class="p-0.5">
 					<input bind:value={new_company.url} type="text" placeholder="enter..." />
 				</td>
-				<td class="p-1 ">
+				<td class="p-0.5 ">
 					<span class="flex justify-around">
 						{#each arr as s, i}
 							{#if i + 1 <= new_company.rating}
@@ -248,17 +296,22 @@
 						{/each}
 					</span>
 				</td>
-				<td class="p-1">
-					<select name="statusSelect" id="statusSelect" bind:value={new_company.status}>
-						<option value={Status.ANSWERED}> answered</option>
-						<option value={Status.APPLIED}> applied</option>
-						<option value={Status.INVITED}> invited</option>
-						<option value={Status.OFFER}> offer</option>
-						<option value={Status.REJECTED}> refected</option>
-						<option value={Status.WRITING}> writing</option>
+				<td class="p-0.5">
+					<select
+						class={color(new_company.status)}
+						name="statusSelect"
+						id="statusSelect"
+						bind:value={new_company.status}
+					>
+						<option value={'ANSWERED'}> answered</option>
+						<option value={'APPLIED'}> applied</option>
+						<option value={'INVITED'}> invited</option>
+						<option value={'OFFER'}> offer</option>
+						<option value={'REJECTED'}> rejected</option>
+						<option value={'WRITING'}> writing</option>
 					</select>
 				</td>
-				<td class="p-1">
+				<td class="p-0.5">
 					<span class="ml-1 text-base font-mono">
 						{times[data.companies.length]}
 					</span>
@@ -287,12 +340,16 @@
 <style>
 	td,
 	th {
-		@apply text-left border-y p-2;
+		@apply text-left border-y p-1;
 	}
 
 	input,
 	select {
-		@apply w-full py-1 rounded font-semibold px-1.5 border-none bg-slate-100 overflow-ellipsis;
+		@apply w-full py-0.5 rounded font-semibold px-1 border-none overflow-ellipsis;
+	}
+
+	input {
+		@apply bg-slate-100;
 	}
 
 	select {
